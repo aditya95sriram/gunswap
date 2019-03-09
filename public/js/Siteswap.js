@@ -27,7 +27,7 @@ function sumThrows(str) {
 
 	return total;
 }
-
+window.sumThrows = sumThrows; // comment: just adds up beats
 var flightPathCache = {};
 
 /* CONSTANTS */
@@ -101,7 +101,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 	if (!siteswap.validationOnly) {
 		generatePropPositions();
 	}
-
+  window.getTosses = getTosses;
 	return siteswap;
 
 	function setDefaultOptions() {
@@ -510,6 +510,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 				}
 			}
 
+			// comment: need to defer this decision for later
 			var crossing = numBeats % 2 == 1 ? true : false;
 			// if the second character is an "x" then crossing is flipped
 			if (siteswapStr.length > 1 && siteswapStr[1] == "x") {
@@ -574,7 +575,9 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 					catchType: catchType,
 					tossOrientation: tossOrientation,
 					rotationAxis: {x:1,y:0,z:0},
-					hold: numBeats == 2 && !crossing && siteswapStr.indexOf("A") == -1 ? true : false
+					/* hold also needs to change */
+					//hold: numBeats == 2 && !crossing && siteswapStr.indexOf("A") == -1 ? true : false
+					hold: false
 				}
 			);
 
@@ -597,6 +600,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 
 		/* get the array of each siteswap.beats' tosses */
 		siteswap.beats = siteswap.pass ? siteswapStr.match(validPassRe) : siteswapStr.match(validBeatRe);		
+		console.log("siteswap.beats", siteswap.beats); // comment: str to array
 
 		/* add (0,0) after each synchronous throw - this prevents the halving issue */
 		for(var i = 0; i < siteswap.beats.length; i++) {
@@ -624,7 +628,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 				tmp += sumThrows(beat);
 			}
 		});
-
+		// comment: tmp holds total beats, then average theorem
 		if((tmp/siteswap.beats.length % 1) == 0 && tmp/siteswap.beats.length > 0) {
 			siteswap.numProps = tmp/siteswap.beats.length;
 		} else {		
@@ -648,6 +652,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 		for (var i = 0; i < siteswap.beats.length; i++) {
 			var tosses = [];
 			dwellPathIx = getTosses(tosses,siteswap.beats[i], 0 /* assume juggler 0 */, undefined, undefined, dwellPathIx);
+			console.log("ss",siteswapStr,"beat #"+i,"tosses",tosses,"dwellpath",dwellPathIx);
 			siteswap.tosses.push(tosses);
 
 			/* if the dwell paths aren't starting over at the same time as the beats, restart the pattern */
@@ -656,7 +661,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 			}
 
 		}
-
+    console.log("final tosses", siteswap.tosses);
 		/* figure out the max throw height which will inform the size of the state array */
 		siteswap.maxHeight = 0;
 
@@ -687,12 +692,14 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 		/* initialize current state */
 		var curState = [];
 		for (var j = 0; j < siteswap.numJugglers; j++) {
-			curState.push([[],[]]);
+			curState.push([[],[]]); // comment: just one juggler in our case
 			for (var k = 0; k < siteswap.maxHeight; k++) {
 				curState[j][LEFT].push(undefined);
 				curState[j][RIGHT].push(undefined);
 			}
 		}
+		// comment: curState = [ 1 juggler ] = [ [left, right] ]
+		console.log("curstate", JSON.stringify(curState));
 
 		var patternComplete = false;
 		var initComplete = false;
@@ -715,9 +722,10 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 
 			/* queue of props to throw this beat */
 			var propsLanding = [];
-
+			console.log("curstate at", stateDiagramBeatCounter, JSON.stringify(curState));
 			/* update the current state for each juggler */
 			for (var j = 0; j < siteswap.numJugglers; j++) {
+				// comment: 'consume' first slot
 				var landingLeft = curState[j][LEFT].shift();
 				if (landingLeft) {
 					for (var k = 0; k < landingLeft.length; k++) {
@@ -730,9 +738,11 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 						propsLanding.push({propId: landingRight[k], juggler: j, hand: RIGHT});	
 					}						
 				}					
+				// comment: add new slot at end
 				curState[j][LEFT].push(undefined);
 				curState[j][RIGHT].push(undefined);
 			}
+			console.log("props landing at", stateDiagramBeatCounter, JSON.stringify(propsLanding));
 
 			/* iterate through all the tosses and update the current state */
 			var stateDiagramTossString = "";
@@ -740,7 +750,15 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 				
 				var toss = siteswap.tosses[beat % siteswap.tosses.length][j];
 				var tossHand = (toss.hand == undefined ? hand : toss.hand);
-				var catchHand = (toss.crossing ? 1 - tossHand : tossHand);
+				//var catchHand = (toss.crossing ? 1 - tossHand : tossHand);
+				// comment: modified catchHand logic
+				var catchHand = (stateDiagramBeatCounter + toss.numBeats)%4 <= 1 ? siteswap.startingHand : 1-siteswap.startingHand;
+				// todo: generalize
+				if (catchHand != tossHand) {
+					toss.crossing = true;
+				} else {
+					toss.crossing = false;
+				}
 
 				var prop = undefined;
 
@@ -811,8 +829,9 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 							
 
 			/* if we're at the beginning of the toss array and we've returned to the original state, the pattern is complete */
-			if (initComplete && beat % siteswap.tosses.length == 0 && arraysEqual(siteswap.states[0],curState)) {					
-				patternComplete = true;				
+			if (initComplete && beat % siteswap.tosses.length == 0 && arraysEqual(siteswap.states[0],curState)) {
+				patternComplete = true;
+				// comment: generalize
 			} else {
 				/* add the current state to the state array and update prop orbits */
 				siteswap.states.push(cloneObject(curState));
@@ -829,7 +848,10 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 
 			beat++;
 			stateDiagramBeatCounter++;
-			hand = 1 - hand; //alternate hands
+			//hand = 1 - hand; //alternate hands
+			// comment: can't simply alternate hands
+			hand = stateDiagramBeatCounter%4 <= 1 ? siteswap.startingHand : 1-siteswap.startingHand;
+			// todo: generalize
 
 			/* fail safe in case the pattern is too long */
 			if (beat > 1000) {
