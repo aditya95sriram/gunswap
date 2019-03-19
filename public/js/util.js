@@ -124,5 +124,45 @@ function negate(a) {
 	return a;
 }
 
+/* used for testing if a siteswap sequence is valid */
+function permutation_test(sequence) {
+  var p = sequence.length;
+  // boolean array to keep track of which remainders are hit
+  var to_hit = Array(p).fill(false);
+  var term;
+  for (var i=0; i<p; i++) {
+    term = (sequence[i]+i) % p;
+    to_hit[term] = true;
+  }
+  for (var i=0; i<p; i++) {
+    if (!to_hit[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+function expand_sequence(sequence, len, objects) {
+  var p = sequence.length;
+  var seq = sequence.map(x=>parseInt(x));
+  var pattern = Array(len).fill(undefined);
+  if (typeof(objects) == 'undefined') {
+    objects = Array.from(Array(len).keys());
+  }
+  var obj_ptr = 0, seq_ptr = 0;
+  for (var i=0; i<len; i++) {
+    if (typeof(pattern[i]) == 'undefined' && seq[seq_ptr] > 0) {
+      pattern[i] = objects[obj_ptr];
+      obj_ptr++;
+    }
+    if (i + seq[seq_ptr] < len) {
+      pattern[i + seq[seq_ptr]] = pattern[i];
+    }
+    seq_ptr = (seq_ptr + 1) % p;
+  }
+  return pattern;
+}
+
 /* global vars */
 window.randomColors = ['red','blue','green','black','yellow','purple'];

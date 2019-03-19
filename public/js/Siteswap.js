@@ -689,6 +689,22 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 		siteswap.propOrbits = [];
 		siteswap.stateDiagram = [];
 
+		var hand_siteswap = prompt("Hand Siteswap: ");
+
+		console.log(hand_siteswap, sumThrows(hand_siteswap));
+		siteswap.hand_siteswap = ["2"];
+		if (!permutation_test(hand_siteswap)) {
+			alert("invalid siteswap sequence");
+		} else if (sumThrows(hand_siteswap)/hand_siteswap.length != 2) {
+			alert("can only handle 2 hand siteswap sequences")
+		} else {
+			siteswap.hand_siteswap = hand_siteswap.match(validBeatRe);
+		}
+		console.log("hand siteswap", siteswap.hand_siteswap, "starting at", siteswap.startingHand);
+		var hand_pattern = expand_sequence(siteswap.hand_siteswap, 1000,
+												[siteswap.startingHand, 1-siteswap.startingHand]);
+		console.log("hand pattern:", hand_pattern);
+
 		/* initialize current state */
 		var curState = [];
 		for (var j = 0; j < siteswap.numJugglers; j++) {
@@ -750,10 +766,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 				
 				var toss = siteswap.tosses[beat % siteswap.tosses.length][j];
 				var tossHand = (toss.hand == undefined ? hand : toss.hand);
-				//var catchHand = (toss.crossing ? 1 - tossHand : tossHand);
-				// comment: modified catchHand logic
-				var catchHand = (stateDiagramBeatCounter + toss.numBeats)%4 <= 1 ? siteswap.startingHand : 1-siteswap.startingHand;
-				// todo: generalize
+				var catchHand = hand_pattern[stateDiagramBeatCounter + toss.numBeats];
 				if (catchHand != tossHand) {
 					toss.crossing = true;
 				} else {
@@ -848,10 +861,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 
 			beat++;
 			stateDiagramBeatCounter++;
-			//hand = 1 - hand; //alternate hands
-			// comment: can't simply alternate hands
-			hand = stateDiagramBeatCounter%4 <= 1 ? siteswap.startingHand : 1-siteswap.startingHand;
-			// todo: generalize
+			hand = hand_pattern[stateDiagramBeatCounter];
 
 			/* fail safe in case the pattern is too long */
 			if (beat > 1000) {
