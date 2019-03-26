@@ -124,6 +124,15 @@ function negate(a) {
 	return a;
 }
 
+function parse_beat(str) {
+  if(!isNaN(parseInt(str))) {
+    return parseInt(str);
+  } else if (str.charCodeAt(0) >= 97 && str.charCodeAt(0) <= 119) {
+    // handle "a" through "z" (where "a" = 10)
+    return str.charCodeAt(0)-87;
+  }
+}
+
 /* used for testing if a siteswap sequence is valid */
 function permutation_test(sequence) {
   var p = sequence.length;
@@ -131,7 +140,7 @@ function permutation_test(sequence) {
   var to_hit = Array(p).fill(false);
   var term;
   for (var i=0; i<p; i++) {
-    term = (sequence[i]+i) % p;
+    term = (parse_beat(sequence[i]) + i) % p;
     to_hit[term] = true;
   }
   for (var i=0; i<p; i++) {
@@ -145,19 +154,20 @@ function permutation_test(sequence) {
 
 function expand_sequence(sequence, len, objects) {
   var p = sequence.length;
-  var seq = sequence.map(x=>parseInt(x));
   var pattern = Array(len).fill(undefined);
   if (typeof(objects) == 'undefined') {
     objects = Array.from(Array(len).keys());
   }
   var obj_ptr = 0, seq_ptr = 0;
+  var sequence_el;
   for (var i=0; i<len; i++) {
-    if (typeof(pattern[i]) == 'undefined' && seq[seq_ptr] > 0) {
+    sequence_el = parse_beat(sequence[seq_ptr]);
+    if (typeof(pattern[i]) == 'undefined' && sequence_el > 0) {
       pattern[i] = objects[obj_ptr];
       obj_ptr++;
     }
-    if (i + seq[seq_ptr] < len) {
-      pattern[i + seq[seq_ptr]] = pattern[i];
+    if (i + sequence_el < len) {
+      pattern[i + sequence_el] = pattern[i];
     }
     seq_ptr = (seq_ptr + 1) % p;
   }

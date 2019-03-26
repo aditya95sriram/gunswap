@@ -689,16 +689,20 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 		siteswap.propOrbits = [];
 		siteswap.stateDiagram = [];
 
-		var hand_siteswap = prompt("Hand Siteswap: ");
-
-		console.log(hand_siteswap, sumThrows(hand_siteswap));
+		var hand_siteswap_beats = prompt("Hand Siteswap: ").match(validBeatRe);
+		var total = 0;
+		for (var i=0; i<hand_siteswap_beats.length; i++) {
+			total += parse_beat(hand_siteswap_beats[i]);
+		}
+		console.log("hss", hand_siteswap_beats);
+		console.log("sum(hss)", total);
 		siteswap.hand_siteswap = ["2"];
-		if (!permutation_test(hand_siteswap)) {
+		if (!permutation_test(hand_siteswap_beats)) {
 			alert("invalid siteswap sequence");
-		} else if (sumThrows(hand_siteswap)/hand_siteswap.length != 2) {
+		} else if (total/hand_siteswap_beats.length != 2) {
 			alert("can only handle 2 hand siteswap sequences")
 		} else {
-			siteswap.hand_siteswap = hand_siteswap.match(validBeatRe);
+			siteswap.hand_siteswap = hand_siteswap_beats;
 		}
 		console.log("hand siteswap", siteswap.hand_siteswap, "starting at", siteswap.startingHand);
 		var hand_pattern = expand_sequence(siteswap.hand_siteswap, 1000,
