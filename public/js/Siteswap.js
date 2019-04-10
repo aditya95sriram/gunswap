@@ -120,6 +120,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 		siteswap.emptyTossScale = (options.emptyTossScale === undefined ? 0.05 : options.emptyTossScale);
 		siteswap.emptyCatchScale = (options.emptyCatchScale === undefined ? 0.05 : options.emptyCatchScale);
 		siteswap.armAngle = (options.armAngle === undefined ? 0.1 : options.armAngle);
+		siteswap.handSiteswap = (options.handSiteswap === undefined ? "2" : ""+options.handSiteswap);
 				
 		if (options.startingHand == "L" || options.startingHand == "LEFT") {
 			siteswap.startingHand = LEFT;			
@@ -689,18 +690,18 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 		siteswap.propOrbits = [];
 		siteswap.stateDiagram = [];
 
-		var hand_siteswap_beats = prompt("Hand Siteswap: ").match(validBeatRe);
-		console.log("hss", hand_siteswap_beats);
-		siteswap.hand_siteswap = ["2"];
-		if (!permutation_test(hand_siteswap_beats)) {
-			alert("invalid siteswap sequence");
-		} else if (average(hand_siteswap_beats) != 2) {
-			alert("can only handle 2 hand siteswap sequences")
-		} else {
-			siteswap.hand_siteswap = hand_siteswap_beats;
-		}
-		console.log("hand siteswap", siteswap.hand_siteswap, "starting at", siteswap.startingHand);
-		var hand_pattern_data = expand_sequence(siteswap.hand_siteswap, 1000,
+		siteswap.handSiteswapBeats = siteswap.handSiteswap.match(validBeatRe);
+		console.log("hss", siteswap.handSiteswapBeats);
+		//siteswap.hand_siteswap = ["2"];
+		if (!permutation_test(siteswap.handSiteswapBeats)) {
+			siteswap.errorMessage = "invalid siteswap sequence";
+			return;
+		} else if (average(siteswap.handSiteswapBeats) != 2) {
+			siteswap.errorMessage = "can only handle 2 hand siteswap sequences";
+			return;
+		} 
+		console.log("hand siteswap", siteswap.handSiteswapBeats, "starting at", siteswap.startingHand);
+		var hand_pattern_data = expand_sequence(siteswap.handSiteswapBeats, 1000,
 												[siteswap.startingHand, 1-siteswap.startingHand]);
     var hand_pattern = hand_pattern_data[0],
 			  hand_pattern_init = hand_pattern_data[1];
@@ -860,8 +861,8 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 			}					
 
 			/* if all props have been introduced to pattern and we're at the end of the pattern, init is complete and steady-state pattern truly begins with the next beat */
-			if (props.length == 0 && (beat+1) % siteswap.tosses.length == 0 && !initComplete && (beat+1) % siteswap.hand_siteswap.length == 0 && beat >= hand_pattern_init) {
-				console.log("init extra", beat+1,siteswap.hand_siteswap.length, hand_pattern_init);
+			if (props.length == 0 && (beat+1) % siteswap.tosses.length == 0 && !initComplete && (beat+1) % siteswap.handSiteswapBeats.length == 0 && beat >= hand_pattern_init) {
+				console.log("init extra", beat+1,siteswap.handSiteswapBeats.length, hand_pattern_init);
 				initComplete = true;
 				beat = -1;
 				siteswap.states = []; /* reset the states and prop orbits */

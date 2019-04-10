@@ -172,7 +172,8 @@ function go() {
 			armAngle: 			inputs.armAngle,
 			surfaces: 			inputs.surfaces,
 			jugglers: 			inputs.jugglers,
-			startingHand: 		inputs.startingHand
+			startingHand: 		inputs.startingHand,
+			handSiteswap:     inputs.handSiteswap
 		});
 
 	/* display state diagram if it's available */
