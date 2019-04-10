@@ -151,27 +151,43 @@ function permutation_test(sequence) {
   return true;
 }
 
+function average(sequence) {
+  var total = 0;
+  for (var i=0; i<sequence.length; i++) {
+    total += parse_beat(sequence[i]);
+  }
+  return total/sequence.length;
+}
 
 function expand_sequence(sequence, len, objects) {
   var p = sequence.length;
   var pattern = Array(len).fill(undefined);
-  if (typeof(objects) == 'undefined') {
-    objects = Array.from(Array(len).keys());
+  var n_obj = average(sequence);
+  if (!Number.isInteger(n_obj)) return null;
+  if (typeof(objects) == 'undefined') {  
+    // populate by default with [0..avg-1]
+    objects = Array.from(Array(n_obj).keys());
+  } else {
+    objects = objects.slice(0, n_obj);
   }
-  var obj_ptr = 0, seq_ptr = 0;
+  var seq_ptr = 0;
   var sequence_el;
+  var init = -1;
   for (var i=0; i<len; i++) {
     sequence_el = parse_beat(sequence[seq_ptr]);
     if (typeof(pattern[i]) == 'undefined' && sequence_el > 0) {
-      pattern[i] = objects[obj_ptr];
-      obj_ptr++;
+      pattern[i] = objects.shift();
+      if (init < 0 && objects.length == 0) {
+        console.log("reached avg at", i);
+        init = i;
+      }
     }
     if (i + sequence_el < len) {
       pattern[i + sequence_el] = pattern[i];
     }
     seq_ptr = (seq_ptr + 1) % p;
   }
-  return pattern;
+  return [pattern, init];
 }
 
 /* global vars */

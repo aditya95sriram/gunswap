@@ -690,23 +690,20 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 		siteswap.stateDiagram = [];
 
 		var hand_siteswap_beats = prompt("Hand Siteswap: ").match(validBeatRe);
-		var total = 0;
-		for (var i=0; i<hand_siteswap_beats.length; i++) {
-			total += parse_beat(hand_siteswap_beats[i]);
-		}
 		console.log("hss", hand_siteswap_beats);
-		console.log("sum(hss)", total);
 		siteswap.hand_siteswap = ["2"];
 		if (!permutation_test(hand_siteswap_beats)) {
 			alert("invalid siteswap sequence");
-		} else if (total/hand_siteswap_beats.length != 2) {
+		} else if (average(hand_siteswap_beats) != 2) {
 			alert("can only handle 2 hand siteswap sequences")
 		} else {
 			siteswap.hand_siteswap = hand_siteswap_beats;
 		}
 		console.log("hand siteswap", siteswap.hand_siteswap, "starting at", siteswap.startingHand);
-		var hand_pattern = expand_sequence(siteswap.hand_siteswap, 1000,
+		var hand_pattern_data = expand_sequence(siteswap.hand_siteswap, 1000,
 												[siteswap.startingHand, 1-siteswap.startingHand]);
+    var hand_pattern = hand_pattern_data[0],
+			  hand_pattern_init = hand_pattern_data[1];
 		console.log("hand pattern:", hand_pattern);
 
 		/* initialize current state */
@@ -731,7 +728,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 		while (!patternComplete) {
 
 			/* start constructing the state diagram by indicating which hand we're on */
-			siteswap.stateDiagram.push([hand == 1 ? "R" : "L"]);
+			siteswap.stateDiagram.push([hand == 1 ? "R" : hand == 0 ? "L" : "X"]);
 			/* add an asterisk to indicate when the cycle actually begins */
 			if (beat == 0 && initComplete) {
 				siteswap.stateDiagram[stateDiagramBeatCounter][0] += "*";
@@ -805,6 +802,13 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 					return;
 				}
 				
+				/* if prop is not undefined and this is a zero toss then we've got an invalid 
+				siteswap combination */
+				if (prop != undefined && hand_pattern[stateDiagramBeatCounter] == undefined) {
+					siteswap.errorMessage = "No hand to toss prop at beat " + beat;
+					return;
+				}
+				
 				stateDiagramTossString += (prop === undefined ? "X" : prop) + "-" + toss.siteswapStr;
 				if(j < siteswap.tosses[beat % siteswap.tosses.length].length-1) {
 					stateDiagramTossString += ",";
@@ -856,7 +860,8 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 			}					
 
 			/* if all props have been introduced to pattern and we're at the end of the pattern, init is complete and steady-state pattern truly begins with the next beat */
-			if (props.length == 0 && (beat+1) % siteswap.tosses.length == 0 && !initComplete) {
+			if (props.length == 0 && (beat+1) % siteswap.tosses.length == 0 && !initComplete && (beat+1) % siteswap.hand_siteswap.length == 0 && beat >= hand_pattern_init) {
+				console.log("init extra", beat+1,siteswap.hand_siteswap.length, hand_pattern_init);
 				initComplete = true;
 				beat = -1;
 				siteswap.states = []; /* reset the states and prop orbits */
