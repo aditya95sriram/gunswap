@@ -98,6 +98,8 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 	
 	if (siteswap.errorMessage) { return siteswap; }
 
+	optimizeDwellTime();
+
 	if (!siteswap.validationOnly) {
 		generatePropPositions();
 	}
@@ -578,7 +580,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 					rotationAxis: {x:1,y:0,z:0},
 					/* hold also needs to change */
 					//hold: numBeats == 2 && !crossing && siteswapStr.indexOf("A") == -1 ? true : false
-					hold: false
+					hold: (siteswapStr.indexOf("A") == -1 ? undefined : false)
 				}
 			);
 
@@ -769,11 +771,13 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 				var toss = siteswap.tosses[beat % siteswap.tosses.length][j];
 				var tossHand = (toss.hand == undefined ? hand : toss.hand);
 				var catchHand = hand_pattern[stateDiagramBeatCounter + toss.numBeats];
-				if (catchHand != tossHand) {
+				// comment: inspect (crossing not used anywhere)
+				/*if (catchHand != tossHand) {
 					toss.crossing = true;
 				} else {
 					toss.crossing = false;
-				}
+				}*/
+				
 
 				var prop = undefined;
 
@@ -821,8 +825,25 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 					if(!tmpPropOrbits[prop]) {
 						tmpPropOrbits[prop] = [];
 					}
-
-					tmpPropOrbits[prop].push({beat: beat, numBeats: toss.numBeats, juggler: toss.juggler, hand: tossHand, numBounces: toss.numBounces, bounceType: toss.bounceType, bounceOrder: toss.bounceOrder, numSpins: toss.numSpins, dwellPathIx: toss.dwellPathIx, dwellDuration: toss.dwellDuration, tossType: toss.tossType, catchType: toss.catchType, tossOrientation: toss.tossOrientation, rotationAxis: toss.rotationAxis, hold: toss.hold });
+					
+					var holdProp = toss.hold;
+					if (initComplete && holdProp == undefined) {
+							holdProp = (toss.numBeats == siteswap.handSiteswapBeats.getIndexCyclic(beat));
+					}
+/*
+					//console.warn("toss hold at beat", beat, ":", toss.hold, "toss", JSON.parse(JSON.stringify(toss)));
+					if (initComplete && holdProp == undefined) {
+						//console.warn("potential hold at", beat, siteswap.handSiteswapBeats, JSON.parse(JSON.stringify(toss)))
+						if (toss.numBeats == siteswap.handSiteswapBeats.getIndexCyclic(beat)) {
+							holdProp = true;
+							console.warn("held at beat", beat);
+						} else {
+							holdProp = false;
+							console.warn("not held at", beat);
+						}
+					}
+*/
+					tmpPropOrbits[prop].push({beat: beat, numBeats: toss.numBeats, juggler: toss.juggler, hand: tossHand, numBounces: toss.numBounces, bounceType: toss.bounceType, bounceOrder: toss.bounceOrder, numSpins: toss.numSpins, dwellPathIx: toss.dwellPathIx, dwellDuration: toss.dwellDuration, tossType: toss.tossType, catchType: toss.catchType, tossOrientation: toss.tossOrientation, rotationAxis: toss.rotationAxis, hold: holdProp, catchHand: catchHand });
 
 					if(curState[toss.targetJuggler][catchHand][toss.numBeats-1] == undefined) {
 						curState[toss.targetJuggler][catchHand][toss.numBeats-1] = [prop];
@@ -851,12 +872,12 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 							
 
 			/* if we're at the beginning of the toss array and we've returned to the original state, the pattern is complete */
-			if (initComplete && beat % siteswap.tosses.length == 0 && arraysEqual(siteswap.states[0],curState)) {
+			if (initComplete && beat % siteswap.tosses.length == 0 && beat % siteswap.handSiteswapBeats.length == 0 && arraysEqual(siteswap.states[0],curState)) {
 				patternComplete = true;
-				// comment: generalize
 			} else {
 				/* add the current state to the state array and update prop orbits */
 				siteswap.states.push(cloneObject(curState));
+				console.warn("tmpPropOrbits", JSON.parse(JSON.stringify(tmpPropOrbits)));
 				siteswap.propOrbits = tmpPropOrbits;
 			}					
 
@@ -1733,6 +1754,29 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 		return false;
 	}
 
+	function optimizeDwellTime() {
+		console.warn("optimizing");
+		for (var prop = 0; prop < siteswap.propOrbits.length; prop++) {
+			for (var i = 0; i < siteswap.propOrbits[prop].length; i++) {
+				var orbit = siteswap.propOrbits[prop][i];
+				var tossBeat = orbit.beat;
+				var landBeat = orbit.beat + orbit.numBeats - 1;
+				for (j = landBeat - 1; j >= tossBeat; j--) {
+					var holdstate = siteswap.states.getIndexCyclic(j);
+					console.log("toss-land", JSON.parse(JSON.stringify(holdstate)));
+					if (holdstate[orbit.juggler][orbit.catchHand][0] != undefined) {
+						console.log("disrupted", holdstate);
+						console.warn("can hold", prop, "tossed at", tossBeat, "from", j+1, "till land at", landBeat);
+						console.log("dwell beats", landBeat - j, "out of", orbit.numBeats);
+						console.log("dwell duration", (landBeat - j)*siteswap.dwellDuration);
+						if (landBeat - j > 1)
+							orbit.dwellDuration = (landBeat - j)*siteswap.dwellDuration;
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 })(typeof exports === 'undefined'? this['SiteswapJS']={}: exports);
