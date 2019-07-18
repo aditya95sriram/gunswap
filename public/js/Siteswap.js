@@ -810,6 +810,11 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 					return;
 				}
 				
+				/* if prop is landing on a 0 toss then we've got an invalid siteswap combination because we'll face an error at a later beat when there is no hand to retoss this prop */
+				if (prop != undefined && catchHand == undefined) {
+					console.warn("Error: No hand to toss prop at future beat " + (beat + toss.numBeats - 1));
+				}
+				
 				stateDiagramTossString += (prop === undefined ? "X" : prop) + "-" + toss.siteswapStr;
 				if(j < siteswap.tosses[beat % siteswap.tosses.length].length-1) {
 					stateDiagramTossString += ",";
@@ -824,11 +829,13 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 
 					tmpPropOrbits[prop].push({beat: beat, numBeats: toss.numBeats, juggler: toss.juggler, hand: tossHand, numBounces: toss.numBounces, bounceType: toss.bounceType, bounceOrder: toss.bounceOrder, numSpins: toss.numSpins, dwellPathIx: toss.dwellPathIx, dwellDuration: toss.dwellDuration, tossType: toss.tossType, catchType: toss.catchType, tossOrientation: toss.tossOrientation, rotationAxis: toss.rotationAxis, hold: toss.hold });
 
-					if(curState[toss.targetJuggler][catchHand][toss.numBeats-1] == undefined) {
-						curState[toss.targetJuggler][catchHand][toss.numBeats-1] = [prop];
-					} else {
-						curState[toss.targetJuggler][catchHand][toss.numBeats-1].push(prop);
-					}
+					if (catchHand != undefined) {
+						if(curState[toss.targetJuggler][catchHand][toss.numBeats-1] == undefined) {
+							curState[toss.targetJuggler][catchHand][toss.numBeats-1] = [prop];
+						} else {
+							curState[toss.targetJuggler][catchHand][toss.numBeats-1].push(prop);
+						}
+				  }
 
 				}
 				
