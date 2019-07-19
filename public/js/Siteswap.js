@@ -685,19 +685,14 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 			props.push(i);
 		}
 
-		/* initialize the state and prop orbits array */
-		siteswap.states = [];
-		siteswap.propOrbits = [];
-		siteswap.stateDiagram = [];
-
 		siteswap.handSiteswapBeats = siteswap.handSiteswap.match(validBeatRe);
 		console.log("hss", siteswap.handSiteswapBeats);
 		//siteswap.hand_siteswap = ["2"];
 		if (!permutation_test(siteswap.handSiteswapBeats)) {
-			siteswap.errorMessage = "invalid siteswap sequence";
+			siteswap.errorMessage = "Invalid hand siteswap sequence";
 			return;
 		} else if (average(siteswap.handSiteswapBeats) != 2) {
-			siteswap.errorMessage = "can only handle 2 hand siteswap sequences";
+			siteswap.errorMessage = "Can only handle 2-hand siteswap sequences";
 			return;
 		} 
 		console.log("hand siteswap", siteswap.handSiteswapBeats, "starting at", siteswap.startingHand);
@@ -706,6 +701,11 @@ exports.CreateSiteswap = function(siteswapStr, options) {
     var hand_pattern = hand_pattern_data[0],
 			  hand_pattern_init = hand_pattern_data[1];
 		console.log("hand pattern:", hand_pattern);
+			
+		/* initialize the state and prop orbits array */
+		siteswap.states = [];
+		siteswap.propOrbits = [];
+		siteswap.stateDiagram = [];
 
 		/* initialize current state */
 		var curState = [];
@@ -858,7 +858,7 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 							
 
 			/* if we're at the beginning of the toss array and we've returned to the original state, the pattern is complete */
-			if (initComplete && beat % siteswap.tosses.length == 0 && arraysEqual(siteswap.states[0],curState)) {
+			if (initComplete && beat % siteswap.tosses.length == 0 && beat % siteswap.handSiteswapBeats.length == 0 && arraysEqual(siteswap.states[0],curState)) {
 				patternComplete = true;
 				// comment: generalize
 			} else {
