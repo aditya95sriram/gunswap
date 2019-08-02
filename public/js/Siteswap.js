@@ -685,6 +685,10 @@ exports.CreateSiteswap = function(siteswapStr, options) {
 			props.push(i);
 		}
 
+		if (!/^[\d\sa-o]+$/.test(siteswap.handSiteswap)) {
+			siteswap.errorMessage = "Invalid character in hand siteswap sequence";
+			return;
+		}
 		siteswap.handSiteswapBeats = siteswap.handSiteswap.match(validBeatRe);
 		console.log("hss", siteswap.handSiteswapBeats);
 		//siteswap.hand_siteswap = ["2"];
